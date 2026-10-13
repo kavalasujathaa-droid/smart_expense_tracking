@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Lock, Mail, User, ShieldCheck, Check, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured, getAuthRedirectUrl } from '../../lib/supabase';
 import FramerButton from './FramerButton';
 
 /**
@@ -141,10 +141,12 @@ export default function FramerAuthModal({
 
     setLoading(true);
     try {
+      const emailRedirectTo = getAuthRedirectUrl();
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
+          emailRedirectTo,
           data: {
             full_name: fullName.trim(),
             role,
@@ -228,11 +230,13 @@ export default function FramerAuthModal({
           background: 'rgba(8, 10, 16, 0.90)',
           border: '1px solid var(--border-glass-light)',
           borderRadius: '24px',
-          padding: '32px 28px',
+          padding: 'clamp(20px, 4vw, 32px) clamp(16px, 4vw, 28px)',
           boxShadow: 'var(--shadow-glass-modal)',
           backdropFilter: 'var(--blur-glass-lg)',
           WebkitBackdropFilter: 'var(--blur-glass-lg)',
-          overflow: 'hidden',
+          maxHeight: 'min(92vh, 640px)',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
           color: '#f0f7f5',
         }}
       >

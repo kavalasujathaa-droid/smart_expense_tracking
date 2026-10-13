@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './components/landing/Navbar';
 import Hero from './components/landing/Hero';
@@ -6,7 +6,12 @@ import Footer from './components/landing/Footer';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import FramerAuthModal from './components/framer/FramerAuthModal';
 import GlaciaAmbientBackground from './components/ui/GlaciaAmbientBackground';
-import { supabase, isSupabaseConfigured } from './lib/supabase';
+import {
+  supabase,
+  isSupabaseConfigured,
+  getAuthCallbackDetails,
+  cleanAuthUrl,
+} from './lib/supabase';
 import { Sparkles, X, AlertTriangle, Wallet } from 'lucide-react';
 
 export default function App() {
@@ -16,18 +21,47 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState('login');
   const [toastMessage, setToastMessage] = useState(null);
+  const callbackHandledRef = useRef(false);
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Restore session and subscribe to Supabase auth events
+  // Restore session, process auth callbacks, and subscribe to Supabase auth events
   useEffect(() => {
+    // 1. Process URL for auth verification callbacks or error parameters
+    const callbackDetails = getAuthCallbackDetails();
+
+    if (callbackDetails.error || callbackDetails.errorDescription) {
+      const errMsg =
+        callbackDetails.errorDescription ||
+        callbackDetails.error ||
+        'Email verification link is invalid or has expired.';
+      showToast(`Verification failed: ${errMsg}`);
+      cleanAuthUrl(window.location.pathname === '/dashboard' ? '/dashboard' : '/');
+    }
+
     if (!isSupabaseConfigured || !supabase) {
       setAuthLoading(false);
       return;
     }
+
+    // Helper to transition to dashboard upon successful email confirmation or recovery
+    const handleSuccessfulAuthRedirect = (session) => {
+      if (callbackDetails.isAuthCallback && !callbackHandledRef.current && session?.user) {
+        callbackHandledRef.current = true;
+        setView('dashboard');
+        cleanAuthUrl('/dashboard');
+        if (callbackDetails.type === 'signup') {
+          showToast('Email verified successfully! Welcome to your dashboard.');
+        } else if (callbackDetails.type === 'recovery') {
+          showToast('Password reset verified. Welcome back.');
+        } else {
+          showToast('Email confirmation verified! Welcome to your dashboard.');
+        }
+      }
+    };
 
     // Check active session on initial load
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -36,14 +70,25 @@ export default function App() {
       }
       setUser(session?.user ?? null);
       setAuthLoading(false);
+      if (session) {
+        handleSuccessfulAuthRedirect(session);
+      }
     });
 
     // Listen for real-time auth state updates (sign in, sign out, token refresh)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
+
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (session) {
+          handleSuccessfulAuthRedirect(session);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
     });
 
     return () => {
@@ -182,24 +227,7 @@ export default function App() {
         <aside
           role="status"
           aria-live="polite"
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            zIndex: 9999,
-            background: 'rgba(8, 11, 20, 0.92)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid var(--border-glass-light)',
-            borderRadius: '16px',
-            padding: '12px 20px',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            boxShadow: 'var(--shadow-glass-elevated)',
-            fontSize: '13.5px',
-          }}
+          className="app-toast-notification"
         >
           <Sparkles size={16} color="var(--accent-green)" />
           <span>{toastMessage}</span>

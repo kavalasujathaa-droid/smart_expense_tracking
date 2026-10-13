@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Smart Expense Tracking
 
 > Precision dark-themed student expense tracking and budget intelligence application inspired by the **Powder** design system ([powder.framer.website](https://powder.framer.website/)). Built with **React 19**, **Vite**, **Vanilla CSS**, **Framer Motion**, **Recharts**, and **Supabase PostgreSQL** with strict **Row Level Security (RLS)**.
@@ -178,3 +179,7 @@ node src/lib/verify_logic.mjs
 1. **Remote SQL Table Creation:** If you have just created a fresh Supabase project, you must execute `supabase/schema.sql` in the Supabase SQL Editor once before adding records.
 2. **Cloud Deployment:** Deployment to production hosting (e.g. Vercel) is scheduled for subsequent release phases.
 3. **Offline Sync:** Currently requires internet access to synchronize with Supabase PostgreSQL.
+=======
+# smart_expense_tracking
+Full-stack expense management platform built with React, Vite, JavaScript, Supabase, and PostgreSQL. Features secure authentication, RLS, expense CRUD, budget tracking, custom categorization, data-driven analytics, interactive Recharts visualizations, and responsive glassmorphism UI with Framer Motion animations.
+>>>>>>> e1ddfdfc313512040440aa103af0c9c0fea8b9f4
